@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+</head>
+
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/themes/redmond/jquery-ui.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.2/css/ui.jqgrid.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.2/jquery.jqgrid.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/jquery.validate.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/additional-methods.min.js"></script>
+  <link rel="stylesheet" href="https://jqueryvalidation.org/files/demo/site-demos.css">
+
+
+<script>
+ $( function() {
+   $( "#datepicker" ).datepicker();
+   $( "#datepicker1" ).datepicker();
+
+  } );
+</script>
+
+
+<script>
+$(document).ready(function () {
+    $('#vacationForm').validate({ // initialize the plugin
+        rules: {
+            start_date: {
+                required: true
+            },
+            end_date: {
+                required: true
+            },
+            description: {
+                minlength: 5,
+                maxlength: 500,
+                required: true
+
+            }
+        }
+    });
+
+});
+</script>
+
+
+
+<script>
+    var data = JSON.parse('{{ obj_as_json | escapejs }}');
+
+    $(function() {
+  $("#grid").jqGrid({
+    autowidth: true, height: 90,rowNum: 4, pager: "#jqGridPager",
+
+    colNames: [ 'idd','from date', 'to date', 'description', 'total period'],
+    colModel: [ {name: 'idd', 'editable':false},
+                {name: "start_date", editable:true,editoptions:{size:10}},
+                {name: "end_date", editable:true,editoptions:{size:10}},
+                 {name: 'description', editable:true,editoptions:{size:10}},
+                 {name: 'total_period', editable:false,editoptions:{size:10}}],
+    data,
+
+    loadComplete: function() {
+
+     // demo - how to access grid data
+     var ids = $(this).jqGrid('getDataIDs'); // ids for each row
+     var gridData = $(this).jqGrid('getGridParam', 'data'); // all rows
+
+    }
+  });
+});
+</script>
+
+
+
+<body>
+    {% if user.is_authenticated %}
+    <p>hello</p>
+    <p>welcome {{ user.username }}</p>
+      <div class="w3-bar w3-black">
+    <button class="w3-bar-item w3-button" onclick="openTab('your_vacations')">your vacations</button>
+    <button class="w3-bar-item w3-button" onclick="openTab('add_vacation')">enter a new vacation</button>
+    </div>
+    <div id="your_vacations" class="w3-container vacation">
+        <h2>your vacations</h2>
+      <p>a list of the vacations you have taken</p>
+
+        <table id="grid"></table>
+            <div id="jqGridPager"></div>
+
+            <input type="BUTTON" id="bedata" value="Edit Selected" />
+            <input type="BUTTON" id="submitChanges" value="submit changes" />
+
+    </div>
+
+<script>
+
+$("#bedata").click(function(){
+
+	var gr = jQuery("#grid").jqGrid('getGridParam','selrow');
+	if( gr != null ) jQuery("#grid").jqGrid('editGridRow',gr,{height:280,reloadAfterSubmit:false});
+	else alert("Please Select Row");
+
+
+
+
+
+});
+/*
+$("#newdata").click(function(){
+	jQuery("#grid").jqGrid('editGridRow',"new",{height:280,reloadAfterSubmit:true});
+});
+*/
+
+
+
+$("#submitChanges").click(function(){
+    var id = jQuery("#grid").jqGrid('getGridParam','selrow');
+	var ret = jQuery("#grid").jqGrid('getRowData',id);
+
+
+	 $.ajax({
+                 type:"POST",
+                 url:"/edit_vacation/",
+                 data: {
+                        'start_date' : ret.start_date,
+                        'end_date' : ret.end_date,
+                        'description' : ret.description,
+                        'idd' : ret.idd
+                        },
+                 success: function(){
+                     alert("your edit was submitted")
+                 }
+            });
+            //alert("please choose different dates. you can't choose dates that have less than 0 working days between")
+
+       });
+
+
+
+
+
+</script>
+
+
+    <div id="add_vacation" class="w3-container vacation" style="display:none">
+      <h2>Enter a vacation</h2>
+      <p>Enter a vacation you want to take</p>
+
+        <form action="/add_vacation/" method="POST" id="vacationForm">
+            {% csrf_token %}
+            {{ form }}
+            <p>from: <input type="text" id="datepicker" name = start_date></p>
+            <p>to: <input type="text"   id="datepicker1"  name = end_date></p>
+            <p>description: <input type="text" name="description" >   </p>
+
+            <button type="submit">Submit</button>
+        </form>
+
+    </div>
+
+    <p><a href="/logout">Logout</a></p>
+    {% else %}
+    <p><a href="/login">Login</a></p>
+    <p><a href="/register">Register</a></p>
+    {% endif %}
+
+<script>
+function openTab(job) {
+    var i;
+    var x = document.getElementsByClassName("vacation");
+    for (i = 0; i < x.length; i++) {
+       x[i].style.display = "none";
+    }
+    document.getElementById(job).style.display = "block";
+}
+</script>
+
+</body>
+</html>
